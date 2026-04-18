@@ -1,0 +1,103 @@
+{
+  "domains": [
+    "wikipedia.org",
+    "namu.wiki",
+
+    "google.com",
+    "youtube.com",
+
+    "naver.com",
+    "daum.net",
+    "kakao.com",
+
+    "tistory.com",
+    "brunch.co.kr",
+    "velog.io",
+    "medium.com",
+
+    "github.com",
+    "stackoverflow.com",
+    "mozilla.org",
+    "w3schools.com",
+    "npmjs.com",
+    "pypi.org",
+    "microsoft.com",
+    "apple.com",
+
+    "instagram.com",
+    "facebook.com",
+    "twitter.com",
+    "x.com",
+    "reddit.com",
+    "linkedin.com",
+
+    "dcinside.com",
+    "clien.net",
+    "ruliweb.com",
+    "ppomppu.co.kr",
+    "fmkorea.com",
+    "mlbpark.donga.com",
+
+    "coupang.com",
+    "gmarket.co.kr",
+    "auction.co.kr",
+    "11st.co.kr",
+    "yes24.com",
+    "aladin.co.kr",
+    "kyobo.co.kr",
+    "interpark.com",
+
+    "chosun.com",
+    "hani.co.kr",
+    "khan.co.kr",
+    "joongang.co.kr",
+    "joins.com",
+    "donga.com",
+    "mk.co.kr",
+    "hankyung.com",
+    "hankookilbo.com",
+    "ohmynews.com",
+    "pressian.com",
+    "ytn.co.kr",
+    "yna.co.kr",
+    "kbs.co.kr",
+    "mbc.co.kr",
+    "sbs.co.kr",
+    "news1.kr",
+    "newsis.com",
+    "zdnet.co.kr",
+    "etnews.com",
+    "itworld.co.kr",
+
+    "afreecatv.com",
+    "chzzk.naver.com",
+    "twitch.tv",
+
+    "go.kr",
+    "or.kr",
+    "ac.kr"
+  ],
+
+  "blockedDomains": [
+    "t.co",
+    "bit.ly",
+    "tinyurl.com",
+    "goo.gl",
+    "ow.ly",
+    "short.io",
+    "is.gd",
+    "buff.ly",
+    "l.facebook.com",
+    "lm.facebook.com",
+    "out.reddit.com"
+  ],
+
+  "blockedPaths": [
+    { "domain": "google.com", "path": "/url" },
+    { "domain": "google.com", "path": "/imgres" },
+    { "domain": "youtube.com", "path": "/redirect" },
+    { "domain": "facebook.com", "path": "/l.php" },
+    { "domain": "twitter.com", "path": "/i/redirect" },
+    { "domain": "x.com", "path": "/i/redirect" }
+  ]
+}

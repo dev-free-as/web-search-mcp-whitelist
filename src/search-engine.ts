@@ -4,6 +4,7 @@ import { SearchOptions, SearchResult, SearchResultWithMetadata } from './types.j
 import { generateTimestamp, sanitizeQuery } from './utils.js';
 import { RateLimiter } from './rate-limiter.js';
 import { BrowserPool } from './browser-pool.js';
+import { filterAllowedUrls } from './security.js';
 
 export class SearchEngine {
   private readonly rateLimiter: RateLimiter;
@@ -50,7 +51,16 @@ export class SearchEngine {
             
             // Use more aggressive timeouts for faster fallback
             const approachTimeout = Math.min(timeout / 3, 4000); // Max 4 seconds per approach for faster fallback
-            const results = await approach.method(sanitizedQuery, numResults, approachTimeout);
+            const rawResults = await approach.method(sanitizedQuery, numResults, approachTimeout);
+
+            // Apply URL allowlist/policy before quality scoring so rejected domains
+            // don't pollute scoring and we never hand off blocked URLs downstream.
+            const { allowed: results, rejected } = filterAllowedUrls(rawResults);
+            if (rejected.length > 0) {
+              const sample = rejected.slice(0, 3).map((r) => `${r.item.url} (${r.reason})`).join('; ');
+              console.log(`[SearchEngine] ${approach.name} filtered ${rejected.length}/${rawResults.length} results by security policy. Samples: ${sample}`);
+            }
+
             if (results.length > 0) {
               console.log(`[SearchEngine] Found ${results.length} results with ${approach.name}`);
               

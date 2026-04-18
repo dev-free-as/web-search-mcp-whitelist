@@ -4,6 +4,7 @@ import { Page } from 'playwright';
 import { ContentExtractionOptions, SearchResult } from './types.js';
 import { cleanText, getWordCount, getContentPreview, generateTimestamp, isPdfUrl } from './utils.js';
 import { BrowserPool } from './browser-pool.js';
+import { checkUrl, filterAllowedUrls, getBrowserSecurity } from './security.js';
 
 export class EnhancedContentExtractor {
   private readonly defaultTimeout: number;
@@ -32,9 +33,15 @@ export class EnhancedContentExtractor {
 
   async extractContent(options: ContentExtractionOptions): Promise<string> {
     const { url } = options;
-    
+
     console.log(`[EnhancedContentExtractor] Starting extraction for: ${url}`);
-    
+
+    // Enforce URL security policy before touching the network or browser.
+    const check = checkUrl(url);
+    if (!check.ok) {
+      throw new Error(`URL blocked by security policy: ${check.reason}`);
+    }
+
     // First, try with regular HTTP client (faster)
     try {
       const content = await this.extractWithAxios(options);
@@ -105,13 +112,17 @@ export class EnhancedContentExtractor {
       };
 
       // Firefox doesn't support isMobile option - check multiple ways to ensure detection
-      const isFirefox = browserType === 'firefox' || 
-                       browserType.includes('firefox') || 
+      const isFirefox = browserType === 'firefox' ||
+                       browserType.includes('firefox') ||
                        browser.constructor.name.toLowerCase().includes('firefox');
-      
+
+      // Untrusted-page defense: disable JS by default so inline scripts on
+      // fetched pages cannot execute prompt-injection payloads or exfil probes.
+      const { javaScriptEnabled } = getBrowserSecurity();
+
       const contextOptions = isFirefox
-        ? baseContextOptions 
-        : { ...baseContextOptions, isMobile: Math.random() > 0.8 };
+        ? { ...baseContextOptions, javaScriptEnabled }
+        : { ...baseContextOptions, isMobile: Math.random() > 0.8, javaScriptEnabled };
 
       // Create a new context for each request (isolation)
       const context = await browser.newContext(contextOptions);
@@ -185,6 +196,7 @@ export class EnhancedContentExtractor {
             viewport: this.getRandomViewport(),
             locale: 'en-US',
             timezoneId: this.getRandomTimezone(),
+            javaScriptEnabled,
             extraHTTPHeaders: {
               'Connection': 'keep-alive',
               'Upgrade-Insecure-Requests': '1'
@@ -399,9 +411,15 @@ export class EnhancedContentExtractor {
 
   async extractContentForResults(results: SearchResult[], targetCount: number = results.length): Promise<SearchResult[]> {
     console.log(`[EnhancedContentExtractor] Processing up to ${results.length} results to get ${targetCount} non-PDF results`);
-    
+
+    // Drop any URLs that would violate the security policy before we spawn workers.
+    const { allowed: policyFiltered, rejected: policyRejected } = filterAllowedUrls(results);
+    if (policyRejected.length > 0) {
+      console.log(`[EnhancedContentExtractor] Dropped ${policyRejected.length} results via security policy before extraction`);
+    }
+
     // Filter out PDF files first
-    const nonPdfResults = results.filter(result => !isPdfUrl(result.url));
+    const nonPdfResults = policyFiltered.filter(result => !isPdfUrl(result.url));
     const resultsToProcess = nonPdfResults.slice(0, Math.min(targetCount * 2, 10)); // Process extra to account for failures
     
     console.log(`[EnhancedContentExtractor] Processing ${resultsToProcess.length} non-PDF results concurrently`);

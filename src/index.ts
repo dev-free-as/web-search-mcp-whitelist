@@ -8,6 +8,7 @@ import { SearchEngine } from './search-engine.js';
 import { EnhancedContentExtractor } from './enhanced-content-extractor.js';
 import { WebSearchToolInput, WebSearchToolOutput, SearchResult } from './types.js';
 import { isPdfUrl } from './utils.js';
+import { checkUrl, clampContent, INJECTION_DEFENSE_NOTICE } from './security.js';
 
 class WebSearchMCPServer {
   private server: McpServer;
@@ -135,7 +136,7 @@ class WebSearchMCPServer {
             content: [
               {
                 type: 'text' as const,
-                text: responseText,
+                text: INJECTION_DEFENSE_NOTICE + clampContent(responseText),
               },
             ],
           };
@@ -219,7 +220,7 @@ class WebSearchMCPServer {
               content: [
                 {
                   type: 'text' as const,
-                  text: responseText,
+                  text: INJECTION_DEFENSE_NOTICE + clampContent(responseText),
                 },
               ],
             };
@@ -278,8 +279,15 @@ class WebSearchMCPServer {
             maxContentLength = maxLengthValue === 0 ? undefined : maxLengthValue;
           }
 
+          // Apply security policy at the MCP boundary so the LLM gets a clear,
+          // actionable error instead of an opaque extractor failure.
+          const policyCheck = checkUrl(obj.url);
+          if (!policyCheck.ok) {
+            throw new Error(`URL blocked by security policy: ${policyCheck.reason}`);
+          }
+
           console.log(`[MCP] Starting single page content extraction for: ${obj.url}`);
-          
+
           // Use existing content extractor to get page content
           const content = await this.contentExtractor.extractContent({
             url: obj.url,
@@ -312,7 +320,7 @@ class WebSearchMCPServer {
             content: [
               {
                 type: 'text' as const,
-                text: responseText,
+                text: INJECTION_DEFENSE_NOTICE + clampContent(responseText),
               },
             ],
           };
